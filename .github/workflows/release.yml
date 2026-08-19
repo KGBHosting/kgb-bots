@@ -63,6 +63,12 @@ jobs:
           grep -F 'CONFIG_FILE_NAME "kgbbots.cfg"' "$PLUGIN_SOURCE"
           grep -F 'EnsureDefaultConfig();' "$PLUGIN_SOURCE"
           grep -F 'write_file(g_ConfigPath' "$PLUGIN_SOURCE"
+          grep -F 'register_concmd("amx_kgbbots_status"' "$PLUGIN_SOURCE"
+          grep -F 'register_concmd("amx_kgbbots_reload"' "$PLUGIN_SOURCE"
+          grep -F '"amx_maxbots"' "$PLUGIN_SOURCE"
+          grep -F '"amx_fillplayers"' "$PLUGIN_SOURCE"
+          grep -F '"amx_graceperiod"' "$PLUGIN_SOURCE"
+          grep -F 'LogBotEvent' "$PLUGIN_SOURCE"
           grep -F 'cs_set_user_team(botId, CS_TEAM_UNASSIGNED)' "$PLUGIN_SOURCE"
 
       - name: Check install config generation
