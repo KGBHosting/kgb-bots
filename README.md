@@ -1,17 +1,20 @@
 # KGB Bots
 
 KGB Bots is an AMX Mod X plugin for Counter-Strike 1.6 servers. It adds one or
-two hidden bots while your configured time and player-count rules match, then
-removes them when the rules no longer match.
+two invisible fake clients while your configured time and player-count rules
+match, then removes them when the rules no longer match.
 
 ## Features
 
-- Creates hidden fake clients with configurable names.
+- Creates invisible fake clients with configurable names.
 - Supports one-bot and two-bot modes.
 - Supports time windows, including overnight windows.
 - Supports player-count based activation rules.
 - Supports servers without normal round endings.
 - Creates a default config file on first load.
+
+The fake clients are hidden in-game by model/rendering state. They are not
+hidden from server query metadata.
 
 ## Install
 
@@ -58,6 +61,13 @@ Docker is required for the bundled build flow.
 
 The script downloads the pinned AMX Mod X compiler when needed, verifies it,
 and writes the compiled plugin to `compiled/kgbbots.amxx`.
+
+```sh
+./scripts/check-compatibility.sh
+```
+
+Use the compatibility check to compile against AMX Mod X `1.8.2`, `1.9`, and
+`1.10`.
 
 ## Release Files
 
