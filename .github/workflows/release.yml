@@ -1,0 +1,98 @@
+name: Build and Release
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PLUGIN_SOURCE: src/kgbbots.sma
+  PLUGIN_ARTIFACT: compiled/kgbbots.amxx
+  PLUGIN_BASENAME: kgbbots.amxx
+
+jobs:
+  build:
+    name: Compile AMXX Plugin
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Compile
+        run: ./scripts/build.sh
+
+      - name: Check expected source strings
+        run: |
+          grep -F '#define PLUGIN_NAME "KGB Bots"' "$PLUGIN_SOURCE"
+          grep -F 'register_cvar("kgbbots", PLUGIN_VERSION' "$PLUGIN_SOURCE"
+          grep -F 'CONFIG_FILE_NAME "kgbbots.cfg"' "$PLUGIN_SOURCE"
+          grep -F 'EnsureDefaultConfig();' "$PLUGIN_SOURCE"
+          grep -F 'write_file(g_ConfigPath' "$PLUGIN_SOURCE"
+          grep -F 'cs_set_user_team(botId, CS_TEAM_UNASSIGNED)' "$PLUGIN_SOURCE"
+
+      - name: Check compiled plugin
+        run: |
+          test -s "$PLUGIN_ARTIFACT"
+          cd compiled
+          sha256sum "$PLUGIN_BASENAME" | tee "$PLUGIN_BASENAME.sha256"
+
+      - name: Upload compiled plugin
+        uses: actions/upload-artifact@v7
+        with:
+          name: kgb-bots-${{ github.sha }}
+          path: |
+            compiled/kgbbots.amxx
+            compiled/kgbbots.amxx.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      actions: read
+      contents: write
+
+    steps:
+      - name: Download compiled plugin
+        uses: actions/download-artifact@v5
+        with:
+          name: kgb-bots-${{ github.sha }}
+          path: dist
+
+      - name: Verify release assets
+        run: |
+          plugin_path="$(find dist -type f -name "$PLUGIN_BASENAME" -print -quit)"
+          checksum_path="$(find dist -type f -name "$PLUGIN_BASENAME.sha256" -print -quit)"
+          test -n "$plugin_path"
+          test -n "$checksum_path"
+          cp "$plugin_path" "$PLUGIN_BASENAME"
+          cp "$checksum_path" "$PLUGIN_BASENAME.sha256"
+          sha256sum --check "$PLUGIN_BASENAME.sha256"
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "$PLUGIN_BASENAME" \
+            "$PLUGIN_BASENAME.sha256" \
+            --verify-tag \
+            --title "KGB Bots $GITHUB_REF_NAME" \
+            --generate-notes
